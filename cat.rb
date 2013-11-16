@@ -38,7 +38,7 @@ class CAT
 			attr_reader :cmd, :params
 
 			def self.parse(message)
-				_, cmd, params = *message.match(/^(..)(.+);/)
+				_, cmd, params = *message.match(/^(..)(.+);/n)
 				klass = Message.const_get(cmd.to_sym) rescue nil
 				msg = (klass || Message).new(cmd, params)
 				msg.parse_params
