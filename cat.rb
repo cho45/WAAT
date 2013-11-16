@@ -7,6 +7,8 @@
 
 require 'rubygems'
 require 'bundler'
+require 'timeout'
+
 Bundler.require
 
 require 'thread'
@@ -162,24 +164,28 @@ class CAT
 			m = read "PC"
 			status[:power] = m.power
 
-			block.call(status)
-			command "AI", "1"
-			while m = @read_queue.pop
-				case m
-				when Message::IF
-					status[:frequency] = m.frequency
-					status[:mode] = m.mode
-					block.call(status)
-				when Message::FA
-					status[:frequency] = m.frequency
-					block.call(status)
-				when Message::PC
-					status[:power] = m.power
-					block.call(status)
-				when Message::MD
-					status[:mode] = m.mode
-					block.call(status)
+			if block
+				block.call(status)
+				command "AI", "1"
+				while m = @read_queue.pop
+					case m
+					when Message::IF
+						status[:frequency] = m.frequency
+						status[:mode] = m.mode
+						block.call(status)
+					when Message::FA
+						status[:frequency] = m.frequency
+						block.call(status)
+					when Message::PC
+						status[:power] = m.power
+						block.call(status)
+					when Message::MD
+						status[:mode] = m.mode
+						block.call(status)
+					end
 				end
+			else
+				status
 			end
 		end
 
@@ -208,20 +214,13 @@ class CAT
 
 		def read(cmd, param="")
 			@port.write "#{cmd}#{param};"
-			while m = @read_queue.pop
-				if m.cmd == cmd
-					return m
+			timeout(1) do
+				while m = @read_queue.pop
+					if m.cmd == cmd
+						return m
+					end
 				end
 			end
 		end
 	end
 end
-
-cat = CAT::FT450D.new({ :port => '/dev/tty.usbserial-FTB3L9UG' })
-cat.frequency = 7e6
-cat.power = 45
-
-cat.status do |st|
-	p st
-end
-
