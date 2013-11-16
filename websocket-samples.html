@@ -10,27 +10,73 @@
 	<body>
 		<pre id="data"></pre>
 
+		<select id="power">
+			<option>5</option>
+			<option>10</option>
+			<option>15</option>
+			<option>20</option>
+			<option>25</option>
+			<option>30</option>
+			<option>40</option>
+			<option>50</option>
+		</select>
+
 		<script>
-			$(function(){
-				function start () {
-					var ws = new WebSocket("ws://localhost:51234");
-					ws.onopen = function() {
+			Cat = {
+				socket : null,
+				init : function () {
+					var self = this;
+					self.start();
+					self.bindEvents();
+				},
+
+				bindEvents : function () {
+					var self = this;
+
+					$('#power').change(function () {
+						self.setPower(+$(this).val());
+					});
+				},
+
+				start : function () {
+					var self = this;
+					self.socket = new WebSocket("ws://localhost:51234");
+					self.socket.onopen = function() {
 						console.log('ws.onopen');
 					};
 
-					ws.onclose = function() {
+					self.socket.onclose = function() {
 						console.log('ws.onclose');
-						setTimeout(start, 1000);
+						setTimeout(function () {
+							self.start();
+						}, 1000);
 					};
 
-					ws.onmessage = function (evt) {
+					self.socket.onmessage = function (evt) {
 						console.log('ws.onmessage', data);
 						var data = JSON.parse(evt.data);
 						$('#data').text(JSON.stringify(data, null, "    "));
 					};
-				}
+				},
 
-				start();
+				setPower : function (power) {
+					var self = this;
+					self.socket.send(JSON.stringify({ command : 'power', value : power }));
+				},
+
+				setFrequency : function (frequency) {
+					var self = this;
+					self.socket.send(JSON.stringify({ command : 'frequency', value : frequency }));
+				},
+
+				setMode : function (mode) {
+					var self = this;
+					self.socket.send(JSON.stringify({ command : 'mode', value : mode }));
+				}
+			};
+
+			$(function(){
+				Cat.init();
 			});
 		</script>
 	</body>

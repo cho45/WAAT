@@ -128,6 +128,13 @@ class CAT
 					@mode = MODE_MAP[self.params[1]]
 				end
 			end
+
+			class VS < Message
+				attr_reader :vfo
+				def parse_params
+					@vfo = self.params == '0' ? :A : :B
+				end
+			end
 		end
 
 
@@ -145,52 +152,61 @@ class CAT
 				Thread.abort_on_exception = true
 				while message = @port.gets(";")
 					msg = Message.parse(message)
+					p msg
 					@read_queue.push(msg)
 				end
 			end
+
+			@status = {}
+			@ai = false
 		end
 
 		def status(&block)
+			return @status if @ai
+
 			command "AI", "0"
 			@read_queue.pop until @read_queue.empty?
 
 			m = read "IF"
-			status = {
-				:frequency => m.frequency,
-				:mode      => m.mode,
-				:power     => nil,
-			}
+			@status[:frequency] = m.frequency
+			@status[:mode] = m.mode
 
 			m = read "PC"
-			status[:power] = m.power
+			@status[:power] = m.power
+
+			m = read "VS"
+			@status[:vfo] = m.vfo
 
 			if block
-				block.call(status)
+				block.call(@status)
 				command "AI", "1"
 				while m = @read_queue.pop
 					case m
 					when Message::IF
-						status[:frequency] = m.frequency
-						status[:mode] = m.mode
-						block.call(status)
+						@status[:frequency] = m.frequency
+						@status[:mode] = m.mode
+						block.call(@status)
 					when Message::FA
-						status[:frequency] = m.frequency
-						block.call(status)
+						@status[:frequency] = m.frequency
+						block.call(@status)
 					when Message::PC
-						status[:power] = m.power
-						block.call(status)
+						@status[:power] = m.power
+						block.call(@status)
 					when Message::MD
-						status[:mode] = m.mode
-						block.call(status)
+						@status[:mode] = m.mode
+						block.call(@status)
+					when Message::VS
+						@status[:vfo] = m.vfo
+						block.call(@status)
 					end
 				end
 			else
-				status
+				@status
 			end
 		end
 
 		def frequency=(freq)
-			if read("VS").params == "0"
+			if @status[:vfo] == :A
 				command "FA", "%08d" % freq
 			else
 				command "FB", "%08d" % freq
