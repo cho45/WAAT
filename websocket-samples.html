@@ -5,7 +5,7 @@
 		<meta charset="utf-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 		<script type="text/javascript" src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
-		<script type="text/javascript" src="https://raw.github.com/alexei/sprintf.js/master/src/sprintf.min.js"></script>
+		<script type="text/javascript" src="lib/sprintf.min.js"></script>
 	</head>
 	<body>
 		<pre id="data"></pre>
@@ -40,13 +40,13 @@
 
 				start : function () {
 					var self = this;
-					self.socket = new WebSocket("ws://localhost:51234");
+					self.socket = new WebSocket("ws://" + location.hostname + ":51234");
 					self.socket.onopen = function() {
 						console.log('ws.onopen');
 					};
 
-					self.socket.onclose = function() {
-						console.log('ws.onclose');
+					self.socket.onclose = function (e) {
+						console.log('ws.onclose', e.code, e.reason);
 						setTimeout(function () {
 							self.start();
 						}, 1000);
@@ -56,6 +56,10 @@
 						console.log('ws.onmessage', data);
 						var data = JSON.parse(evt.data);
 						$('#data').text(JSON.stringify(data, null, "    "));
+					};
+
+					self.socket.onerror = function (e) {
+						console.log('ws.onerror');
 					};
 				},
 

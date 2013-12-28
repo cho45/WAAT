@@ -4,7 +4,7 @@ require "em-websocket"
 require "json"
 require "./cat.rb"
 
-@cat = CAT::FT450D.new({ :port => '/dev/tty.usbserial-FTB3L9UG' })
+@cat = CAT::FT450D.new({ :port => '/dev/ttyUSB0' })
 
 EM::run do
 	@channel = EM::Channel.new
@@ -12,6 +12,7 @@ EM::run do
 
 	EM::WebSocket.start(:host => "0.0.0.0", :port => 51234) do |ws|
 		ws.onopen do
+			p :onopen
 			ws.send(JSON.generate(@status)) if @status
 
 			sid = @channel.subscribe do |mes|
@@ -19,6 +20,7 @@ EM::run do
 			end
 
 			ws.onclose do
+				p :onclose
 				@channel.unsubscribe(sid)
 			end
 		end
@@ -38,6 +40,10 @@ EM::run do
 				puts "timeout"
 				ws.send(JSON.generate({ "error" => "timeout" }))
 			end
+		end
+
+		ws.onerror do |error|
+			p error
 		end
 	end
 

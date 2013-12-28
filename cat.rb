@@ -152,7 +152,6 @@ class CAT
 				Thread.abort_on_exception = true
 				while message = @port.gets(";")
 					msg = Message.parse(message)
-					p msg
 					@read_queue.push(msg)
 				end
 			end
