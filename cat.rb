@@ -135,6 +135,23 @@ class CAT
 					@vfo = self.params == '0' ? :A : :B
 				end
 			end
+
+			class SH < Message
+				attr_reader :width
+				def parse_params
+					@width = self.params.to_i
+				end
+			end
+
+			class NR < Message
+			end
+
+			class RL < Message
+				attr_reader :level
+				def parse_params
+					@level = self.params.to_i
+				end
+			end
 		end
 
 
@@ -152,6 +169,7 @@ class CAT
 				Thread.abort_on_exception = true
 				while message = @port.gets(";")
 					msg = Message.parse(message)
+					p msg
 					@read_queue.push(msg)
 				end
 			end
@@ -176,6 +194,17 @@ class CAT
 			m = read "VS"
 			@status[:vfo] = m.vfo
 
+			m = read "SH", "0"
+			@status[:width] = m.width
+
+			m = read "NR", "0"
+			if m.params[1] == '1'
+				m = read "RL", "0"
+				@status[:noise_reduction] = m.params.to_i
+			else
+				@status[:noise_reduction] = 0
+			end
+
 			if block
 				block.call(@status)
 				begin
@@ -197,6 +226,19 @@ class CAT
 							block.call(@status)
 						when Message::VS
 							@status[:vfo] = m.vfo
+							block.call(@status)
+						when Message::SH
+							@status[:width] = m.width
+							block.call(@status)
+						when Message::NR
+							if m.params[1] === '0'
+								@status[:noise_reduction] = 0 
+								block.call(@status)
+							else
+								command "RL", "0"
+							end
+						when Message::RL
+							@status[:noise_reduction] = m.level
 							block.call(@status)
 						end
 					end
@@ -223,6 +265,19 @@ class CAT
 
 		def power=(power)
 			command "PC", "%03d" % power
+		end
+
+		def width=(width)
+			command "SH", "%03d" % width
+		end
+
+		def noise_reduction=(level)
+			if level.zero?
+				command "NR", "00"
+			else
+				command "NR", "01"
+				command "RL", "%03d" % level
+			end
 		end
 
 		private

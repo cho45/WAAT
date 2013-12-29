@@ -21,6 +21,27 @@
 			<option>50</option>
 		</select>
 
+		<select id="width">
+			<option value="00">narrow</option>
+			<option value="16">normal</option>
+			<option value="31">wide</option>
+		</select>
+
+		<select id="noise_reduction">
+			<option value="0">off</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+		</select>
+
 		<script>
 			Cat = {
 				socket : null,
@@ -35,6 +56,14 @@
 
 					$('#power').change(function () {
 						self.setPower(+$(this).val());
+					});
+
+					$('#width').change(function () {
+						self.setWidth(+$(this).val());
+					});
+
+					$('#noise_reduction').change(function () {
+						self.setNoiseReduction(+$(this).val());
 					});
 				},
 
@@ -76,7 +105,18 @@
 				setMode : function (mode) {
 					var self = this;
 					self.socket.send(JSON.stringify({ command : 'mode', value : mode }));
+				},
+
+				setWidth : function (width) {
+					var self = this;
+					self.socket.send(JSON.stringify({ command : 'width', value : width }));
+				},
+
+				setNoiseReduction : function (level) {
+					var self = this;
+					self.socket.send(JSON.stringify({ command : 'noise_reduction', value : level }));
 				}
+
 			};
 
 			$(function(){
