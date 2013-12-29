@@ -178,26 +178,31 @@ class CAT
 
 			if block
 				block.call(@status)
-				command "AI", "1"
-				while m = @read_queue.pop
-					case m
-					when Message::IF
-						@status[:frequency] = m.frequency
-						@status[:mode] = m.mode
-						block.call(@status)
-					when Message::FA
-						@status[:frequency] = m.frequency
-						block.call(@status)
-					when Message::PC
-						@status[:power] = m.power
-						block.call(@status)
-					when Message::MD
-						@status[:mode] = m.mode
-						block.call(@status)
-					when Message::VS
-						@status[:vfo] = m.vfo
-						block.call(@status)
+				begin
+					command "AI", "1"
+					while m = timeout(10) { @read_queue.pop }
+						case m
+						when Message::IF
+							@status[:frequency] = m.frequency
+							@status[:mode] = m.mode
+							block.call(@status)
+						when Message::FA
+							@status[:frequency] = m.frequency
+							block.call(@status)
+						when Message::PC
+							@status[:power] = m.power
+							block.call(@status)
+						when Message::MD
+							@status[:mode] = m.mode
+							block.call(@status)
+						when Message::VS
+							@status[:vfo] = m.vfo
+							block.call(@status)
+						end
 					end
+				rescue Timeout::Error => e
+					p :timeout
+					retry
 				end
 			else
 				@status

@@ -21,3 +21,11 @@ I, [2013-12-28T23:09:53.706784 #3752]  INFO -- : 0:  em-websocket (0.5.0) from /
 I, [2013-12-28T23:09:53.724230 #3752]  INFO -- : 0:  rack (1.5.2) from /home/pi/lib/ruby/gems/1.8/specifications/rack-1.5.2.gemspec
 I, [2013-12-28T23:09:53.737939 #3752]  INFO -- : 0:  serialport (1.1.0) from /home/pi/lib/ruby/gems/1.8/specifications/serialport-1.1.0.gemspec
 I, [2013-12-28T23:09:53.751567 #3752]  INFO -- : 0:  bundler (1.5.1) from /var/lib/gems/1.9.1/specifications/bundler-1.5.1.gemspec
+I, [2013-12-28T23:53:00.870921 #4370]  INFO -- : 0:  eventmachine (1.0.3) from /home/pi/lib/ruby/gems/1.8/specifications/eventmachine-1.0.3.gemspec
+I, [2013-12-28T23:53:00.894099 #4370]  INFO -- : 0:  http_parser.rb (0.5.3) from /home/pi/lib/ruby/gems/1.8/specifications/http_parser.rb-0.5.3.gemspec
+I, [2013-12-28T23:53:00.922123 #4370]  INFO -- : 0:  em-websocket (0.5.0) from /home/pi/lib/ruby/gems/1.8/specifications/em-websocket-0.5.0.gemspec
+I, [2013-12-28T23:53:05.848576 #4370]  INFO -- : 0:  websocket (1.1.2) from /home/pi/lib/ruby/gems/1.8/specifications/websocket-1.1.2.gemspec
+I, [2013-12-28T23:53:09.434019 #4370]  INFO -- : 0:  em-websocket-client (0.1.2) from /home/pi/lib/ruby/gems/1.8/specifications/em-websocket-client-0.1.2.gemspec
+I, [2013-12-28T23:53:09.456159 #4370]  INFO -- : 0:  rack (1.5.2) from /home/pi/lib/ruby/gems/1.8/specifications/rack-1.5.2.gemspec
+I, [2013-12-28T23:53:09.477555 #4370]  INFO -- : 0:  serialport (1.1.0) from /home/pi/lib/ruby/gems/1.8/specifications/serialport-1.1.0.gemspec
+I, [2013-12-28T23:53:09.499856 #4370]  INFO -- : 0:  bundler (1.5.1) from /var/lib/gems/1.9.1/specifications/bundler-1.5.1.gemspec

@@ -5,4 +5,5 @@ source "https://rubygems.org"
 gem "serialport"
 gem "rack"
 gem "em-websocket"
+gem "em-websocket-client"
 

@@ -35,6 +35,8 @@ EM::run do
 					@cat.frequency = cmd["value"]
 				when "mode"
 					@cat.mode = cmd["value"]
+				when "status"
+					ws.send(JSON.generate(@status)) if @status
 				end
 			rescue Timeout::Error
 				puts "timeout"
