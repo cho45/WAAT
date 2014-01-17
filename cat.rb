@@ -168,9 +168,12 @@ class CAT
 			@read_thread = Thread.start do
 				Thread.abort_on_exception = true
 				while message = @port.gets(";")
-					msg = Message.parse(message)
-					p msg
-					@read_queue.push(msg)
+					begin
+						msg = Message.parse(message)
+						@read_queue.push(msg)
+					rescue => e
+						p e
+					end
 				end
 			end
 

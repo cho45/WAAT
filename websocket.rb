@@ -4,7 +4,9 @@ require "em-websocket"
 require "json"
 require "./cat.rb"
 
-@cat = CAT::FT450D.new({ :port => '/dev/ttyUSB0' })
+port = ARGV.shift || '/dev/ttyAMA0'
+
+@cat = CAT::FT450D.new({ :port => port})
 
 EM::run do
 	@channel = EM::Channel.new

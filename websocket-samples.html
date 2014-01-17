@@ -1,48 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html
+	ng-app="myApp"
+	>
 	<head>
 		<title></title>
 		<meta charset="utf-8"/>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-		<script type="text/javascript" src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+		<script type="text/javascript" src="lib/jquery-2.0.3.min.js"></script>
 		<script type="text/javascript" src="lib/sprintf.min.js"></script>
+		<script type="text/javascript" src="lib/angular.min.js"></script>
+		<script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="websocket-samples.js"></script>
+
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
 	</head>
-	<body>
-		<pre id="data"></pre>
+	<body ng-controller="MyCtrl" ng-keydown="handleKey($event)">
+		<div class="container">
+			<div class="page-header">
+				<h1>Demo</h1>
+			</div>
 
-		<select id="power">
-			<option>5</option>
-			<option>10</option>
-			<option>15</option>
-			<option>20</option>
-			<option>25</option>
-			<option>30</option>
-			<option>40</option>
-			<option>50</option>
-		</select>
+			<div class="frequency">
+				<strong style="font-size: 200%">{{ frequency | number }}</strong>
+				Hz
+				(VFO-{{ vfo }})
+			</div>
 
-		<select id="width">
-			<option value="00">narrow</option>
-			<option value="16">normal</option>
-			<option value="31">wide</option>
-		</select>
+			<form class="form-inline">
+				<label>Power:</label>
+				<select ng-model="power" ng-change="setPower()" class="form-control">
+					<option>5</option>
+					<option>10</option>
+					<option>15</option>
+					<option>20</option>
+					<option>25</option>
+					<option>30</option>
+					<option>40</option>
+					<option>50</option>
+				</select>
 
-		<select id="noise_reduction">
-			<option value="0">off</option>
-			<option value="1">1</option>
-			<option value="2">2</option>
-			<option value="3">3</option>
-			<option value="4">4</option>
-			<option value="5">5</option>
-			<option value="6">6</option>
-			<option value="7">7</option>
-			<option value="8">8</option>
-			<option value="9">9</option>
-			<option value="10">10</option>
-			<option value="11">11</option>
-		</select>
+				<label>Width:</label>
+				<select ng-model="width" ng-change="setWidth()" class="form-control">
+					<option value="0">narrow</option>
+					<option value="16">normal</option>
+					<option value="31">wide</option>
+				</select>
 
-		<script>
+				<label>Noise Reduction:</label>
+				<select ng-model="noise_reduction" ng-change="setNoiseReduction()" class="form-control">
+					<option value="0">off</option>
+					<option value="1">1</option>
+					<option value="2">2</option>
+					<option value="3">3</option>
+					<option value="4">4</option>
+					<option value="5">5</option>
+					<option value="6">6</option>
+					<option value="7">7</option>
+					<option value="8">8</option>
+					<option value="9">9</option>
+					<option value="10">10</option>
+					<option value="11">11</option>
+				</select>
+			</form>
+
+			<pre ng-bind="data"></pre>
+		</div>
+
+		<!-- script>
 			Cat = {
 				socket : null,
 				init : function () {
@@ -122,6 +146,6 @@
 			$(function(){
 				Cat.init();
 			});
-		</script>
+		</script -->
 	</body>
 </html>
