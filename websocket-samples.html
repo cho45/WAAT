@@ -20,6 +20,10 @@
 				<h1>Demo</h1>
 			</div>
 
+			<div class="status">
+				Status: {{ connection ? "OK" : "Closed" }}
+			</div>
+
 			<div class="frequency">
 				<strong style="font-size: 200%">{{ frequency | number }}</strong>
 				Hz

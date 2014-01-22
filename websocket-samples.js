@@ -1,7 +1,7 @@
 
 var myApp = angular.module('myApp', []);
 
-myApp.factory('CATSocketService', function () {
+myApp.factory('CATSocketService', function ($rootScope) {
 	var service = {};
 
 	service.connect = function () {
@@ -11,6 +11,7 @@ myApp.factory('CATSocketService', function () {
 		service.socket.onopen = function () {
 			console.log('onopen');
 			if (service.onopen) service.onopen();
+			$rootScope.$apply();
 		};
 
 		service.socket.onclose = function () {
@@ -21,12 +22,14 @@ myApp.factory('CATSocketService', function () {
 				console.log('reconnecting');
 				service.connect();
 			}, 1000);
+			$rootScope.$apply();
 		};
 
 		service.socket.onmessage = function (e) {
 			var data = JSON.parse(e.data);
 			console.log('ws.onmessage', data);
 			if (service.onmessage) service.onmessage(data);
+			$rootScope.$apply();
 		};
 	};
 
@@ -41,7 +44,15 @@ myApp.factory('CATSocketService', function () {
 	return service;
 });
 
-myApp.controller('MyCtrl', function ($scope, $http, CATSocketService) {
+myApp.controller('MyCtrl', function ($scope, $http, $timeout, CATSocketService) {
+	CATSocketService.onopen = function () {
+		$scope.connection = true;
+	};
+
+	CATSocketService.onclose = function () {
+		$scope.connection = false;
+	};
+
 	CATSocketService.onmessage = function (data) {
 		$scope.data            = JSON.stringify(data, null, 2);
 		$scope.frequency       = data.frequency;
@@ -50,7 +61,6 @@ myApp.controller('MyCtrl', function ($scope, $http, CATSocketService) {
 		$scope.vfo             = data.vfo;
 		$scope.width           = data.width;
 		$scope.noise_reduction = data.noise_reduction;
-		$scope.$apply();
 	};
 
 	$scope.setPower = function () {
@@ -73,15 +83,23 @@ myApp.controller('MyCtrl', function ($scope, $http, CATSocketService) {
 		CATSocketService.command('noise_reduction', +$scope.noise_reduction);
 	};
 
+	var timer, willChange;
 	$scope.handleKey = function (e) {
+		if (!willChange) willChange = $scope.frequency;
 		if (e.keyCode === 38) { // UP
-			$scope.frequency += 10;
-			$scope.setFrequency();
+			willChange += 10;
 		} else
 		if (e.keyCode === 40) { // DOWN
-			$scope.frequency -= 10;
-			$scope.setFrequency();
+			willChange -= 10;
 		}
+		$scope.frequency = willChange;
+
+		$timeout.cancel(timer);
+		timer = $timeout(function () {
+			$scope.frequency = willChange;
+			$scope.setFrequency();
+			willChange = null;
+		}, 1000);
 	};
 
 	CATSocketService.connect();
