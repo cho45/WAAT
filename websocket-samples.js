@@ -24,8 +24,8 @@ myApp.factory('CATSocketService', function () {
 		};
 
 		service.socket.onmessage = function (e) {
-			console.log('ws.onmessage', data);
 			var data = JSON.parse(e.data);
+			console.log('ws.onmessage', data);
 			if (service.onmessage) service.onmessage(data);
 		};
 	};
@@ -74,7 +74,6 @@ myApp.controller('MyCtrl', function ($scope, $http, CATSocketService) {
 	};
 
 	$scope.handleKey = function (e) {
-		console.log(e);
 		if (e.keyCode === 38) { // UP
 			$scope.frequency += 10;
 			$scope.setFrequency();

@@ -38,11 +38,15 @@ class CAT
 			attr_reader :cmd, :params
 
 			def self.parse(message)
-				_, cmd, params = *message.match(/^(..)(.+);/n)
-				klass = Message.const_get(cmd.to_sym) rescue nil
-				msg = (klass || Message).new(cmd, params)
-				msg.parse_params
-				msg
+				if message == "?;"
+					Message::Error.new("?", "")
+				else
+					_, cmd, params = *message.match(/^(..)(.+);/n)
+					klass = Message.const_get(cmd.to_sym) rescue nil
+					msg = (klass || Message).new(cmd, params)
+					msg.parse_params
+					msg
+				end
 			end
 
 			def initialize(cmd, params)
@@ -51,6 +55,9 @@ class CAT
 			end
 
 			def parse_params
+			end
+
+			class Error < Message
 			end
 
 			class IF < Message
@@ -171,7 +178,11 @@ class CAT
 					begin
 						msg = Message.parse(message)
 						@read_queue.push(msg)
+						if @ai_queue[msg.cmd]
+							@ai_queue.delete(msg.cmd).push(msg)
+						end
 					rescue => e
+						p message
 						p e
 					end
 				end
@@ -179,6 +190,7 @@ class CAT
 
 			@status = {}
 			@ai = false
+			@ai_queue = {}
 		end
 
 		def status(&block)
@@ -209,6 +221,7 @@ class CAT
 			end
 
 			if block
+				@ai = true
 				block.call(@status)
 				begin
 					command "AI", "1"
@@ -266,39 +279,61 @@ class CAT
 			command "MD", "0" + MODE_MAP.key(mode)
 		end
 
-		def power=(power)
-			command "PC", "%03d" % power
+		def power=(power, try=3)
+			importune do
+				command "PC", "%03d" % power
+			end
 		end
 
 		def width=(width)
-			command "SH", "%03d" % width
+			importune do
+				command "SH", "%03d" % width
+			end
 		end
 
 		def noise_reduction=(level)
 			if level.zero?
-				command "NR", "00"
+				importune do
+					command "NR", "00"
+				end
 			else
-				command "NR", "01"
-				command "RL", "%03d" % level
+				importune do
+					command "NR", "01"
+					command "RL", "%03d" % level
+				end
 			end
 		end
 
 		private
 
 		def command(cmd, param="")
+			p "#{cmd}#{param};"
 			@port.write "#{cmd}#{param};"
 			sleep 0.1
 		end
 
 		def read(cmd, param="")
+			p "#{cmd}#{param};"
 			@port.write "#{cmd}#{param};"
-			timeout(1) do
-				while m = @read_queue.pop
-					if m.cmd == cmd
-						return m
+			if @ai
+				@ai_queue[cmd] = Queue.new
+				timeout(1) do
+					return @ai_queue[cmd].pop
+				end
+			else
+				timeout(1) do
+					while m = @read_queue.pop
+						if m.cmd == cmd
+							return m
+						end
 					end
 				end
 			end
+		end
+
+		def importune(n=3, &block)
+			yield
+			importune(n-1, &block) if 1 < n
 		end
 	end
 end

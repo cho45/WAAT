@@ -28,8 +28,9 @@ EM::run do
 		end
 
 		ws.onmessage do |msg|
+			cmd = JSON.parse(msg)
+			p cmd
 			begin
-				cmd = JSON.parse(msg)
 				case cmd["command"]
 				when "power"
 					@cat.power = cmd["value"]
@@ -44,9 +45,12 @@ EM::run do
 				when "status"
 					ws.send(JSON.generate(@status)) if @status
 				end
+				if cmd["id"]
+					ws.send(JSON.generate({ "id" => cmd["id"] }))
+				end
 			rescue Timeout::Error
 				puts "timeout"
-				ws.send(JSON.generate({ "error" => "timeout" }))
+				ws.send(JSON.generate({ "id" => cmd["id"], "error" => "timeout" }))
 			end
 		end
 
@@ -59,6 +63,7 @@ EM::run do
 		begin
 			@cat.status do |status|
 				@status = status
+				p @status
 				@channel.push JSON.generate(@status)
 			end
 		rescue Timeout::Error
