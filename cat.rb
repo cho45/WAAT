@@ -41,7 +41,7 @@ class CAT
 				if message == "?;"
 					Message::Error.new("?", "")
 				else
-					_, cmd, params = *message.match(/^(..)(.+);/n)
+					_, cmd, params = *message.match(/(..)(.+);/n)
 					klass = Message.const_get(cmd.to_sym) rescue nil
 					msg = (klass || Message).new(cmd, params)
 					msg.parse_params
@@ -170,15 +170,18 @@ class CAT
 				STOPBIT,
 				PATITYCHECK
 			)
+			@port.set_encoding(Encoding::BINARY)
 
+			@ai_queue = Queue.new
 			@read_queue  = Queue.new
 			@read_thread = Thread.start do
 				Thread.abort_on_exception = true
 				while message = @port.gets(";")
-					p "<< #{message}"
+					# p "<< #{message}"
 					begin
 						msg = Message.parse(message)
 						@read_queue.push(msg)
+						@ai_queue.push(msg) if @ai_queue
 					rescue => e
 						p message
 						p e
@@ -231,45 +234,123 @@ class CAT
 
 			if block
 				block.call(@status)
-				loop do
-					prev = @status.to_a
-					status()
-					unless prev == @status.to_a
-						block.call(@status)
-					end
-				end
+				start_ai(&block)
 			else
 				@status
 			end
 		end
 
-		def frequency=(freq)
+		def start_ai(&block)
+			@ai_queue = Queue.new
+			begin
+				command "AI", "1"
+				while m = timeout(10) { @ai_queue.pop }
+					case m
+					when Message::IF
+						@status[:frequency] = m.frequency
+						@status[:mode] = m.mode
+						block.call(@status)
+					when Message::FA
+						@status[:frequency] = m.frequency
+						block.call(@status)
+					when Message::PC
+						@status[:power] = m.power
+						block.call(@status)
+					when Message::MD
+						@status[:mode] = m.mode
+						block.call(@status)
+					when Message::VS
+						@status[:vfo] = m.vfo
+						block.call(@status)
+					when Message::SH
+						@status[:width] = m.width
+						block.call(@status)
+					when Message::NR
+						if m.params[1] === '0'
+							@status[:noise_reduction] = 0 
+							block.call(@status)
+						else
+							command "RL", "0"
+						end
+					when Message::RL
+						@status[:noise_reduction] = m.level
+						block.call(@status)
+					end
+				end
+			rescue Timeout::Error => e
+				p :timeout
+				retry
+			ensure
+				@ai_queue = nil
+			end
+		end
+
+		def frequency=(freq, try=5)
 			if @status[:vfo] == :A
 				command "FA", "%08d" % freq
+				command "FA", "%08d" % freq
+				command "FA", "%08d" % freq
+				read("FA").frequency == freq or raise
 			else
 				command "FB", "%08d" % freq
+				command "FB", "%08d" % freq
+				command "FB", "%08d" % freq
+				read("FB").frequency == freq or raise
 			end
+		rescue
+			try -= 1
+			retry if try > 0
 		end
 
-		def mode=(mode)
+		def mode=(mode, try=5)
 			command "MD", "0" + MODE_MAP.key(mode)
+			command "MD", "0" + MODE_MAP.key(mode)
+			command "MD", "0" + MODE_MAP.key(mode)
+			read("MD", "0").mode == mode or raise
+		rescue
+			try -= 1
+			retry if try > 0
 		end
 
-		def power=(power, try=3)
+		def power=(power, try=5)
 			command "PC", "%03d" % power
+			command "PC", "%03d" % power
+			command "PC", "%03d" % power
+			read("PC").power == power or raise
+		rescue
+			try -= 1
+			retry if try > 0
 		end
 
-		def width=(width)
+		def width=(width, try=5)
 			command "SH", "%03d" % width
+			command "SH", "%03d" % width
+			command "SH", "%03d" % width
+			read("SH", "0").width == width or raise
+		rescue
+			try -= 1
+			retry if try > 0
 		end
 
-		def noise_reduction=(level)
+		def noise_reduction=(level, try=5)
 			if level.zero?
 				command "NR", "00"
+				command "NR", "00"
+				command "NR", "00"
+				read("NR", "0").params == "00" or raise
 			else
-				command "NR", "01"
 				command "RL", "%03d" % level
+				command "RL", "%03d" % level
+				command "RL", "%03d" % level
+				read("RL", "0").level == level or raise
+				command "NR", "01"
+				command "NR", "01"
+				command "NR", "01"
+				read("NR", "0").params == "01" or raise
 			end
+		rescue
+			try -= 1
+			retry if try > 0
 		end
 
 		private
