@@ -87,10 +87,10 @@ myApp.controller('MyCtrl', function ($scope, $http, $timeout, CATSocketService) 
 	$scope.handleKey = function (e) {
 		if (!willChange) willChange = $scope.frequency;
 		if (e.keyCode === 38) { // UP
-			willChange += 10;
+			willChange += 100;
 		} else
 		if (e.keyCode === 40) { // DOWN
-			willChange -= 10;
+			willChange -= 100;
 		}
 		$scope.frequency = willChange;
 

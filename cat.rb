@@ -15,7 +15,8 @@ require 'thread'
 
 class CAT
 	class FT450D < CAT
-		BAUDRATE    = 4800
+		# BAUDRATE    = 4800
+		BAUDRATE    = 9600
 		DATABIT     = 8
 		STOPBIT     = 2
 		PATITYCHECK = SerialPort::NONE
@@ -177,7 +178,7 @@ class CAT
 			@read_thread = Thread.start do
 				Thread.abort_on_exception = true
 				while message = @port.gets(";")
-					# p "<< #{message}"
+					p "<< #{message}"
 					begin
 						msg = Message.parse(message)
 						@read_queue.push(msg)
@@ -288,12 +289,8 @@ class CAT
 		def frequency=(freq, try=5)
 			if @status[:vfo] == :A
 				command "FA", "%08d" % freq
-				command "FA", "%08d" % freq
-				command "FA", "%08d" % freq
 				read("FA").frequency == freq or raise
 			else
-				command "FB", "%08d" % freq
-				command "FB", "%08d" % freq
 				command "FB", "%08d" % freq
 				read("FB").frequency == freq or raise
 			end
@@ -304,8 +301,6 @@ class CAT
 
 		def mode=(mode, try=5)
 			command "MD", "0" + MODE_MAP.key(mode)
-			command "MD", "0" + MODE_MAP.key(mode)
-			command "MD", "0" + MODE_MAP.key(mode)
 			read("MD", "0").mode == mode or raise
 		rescue
 			try -= 1
@@ -314,8 +309,6 @@ class CAT
 
 		def power=(power, try=5)
 			command "PC", "%03d" % power
-			command "PC", "%03d" % power
-			command "PC", "%03d" % power
 			read("PC").power == power or raise
 		rescue
 			try -= 1
@@ -323,8 +316,6 @@ class CAT
 		end
 
 		def width=(width, try=5)
-			command "SH", "%03d" % width
-			command "SH", "%03d" % width
 			command "SH", "%03d" % width
 			read("SH", "0").width == width or raise
 		rescue
@@ -335,16 +326,10 @@ class CAT
 		def noise_reduction=(level, try=5)
 			if level.zero?
 				command "NR", "00"
-				command "NR", "00"
-				command "NR", "00"
 				read("NR", "0").params == "00" or raise
 			else
 				command "RL", "%03d" % level
-				command "RL", "%03d" % level
-				command "RL", "%03d" % level
 				read("RL", "0").level == level or raise
-				command "NR", "01"
-				command "NR", "01"
 				command "NR", "01"
 				read("NR", "0").params == "01" or raise
 			end
@@ -355,12 +340,18 @@ class CAT
 
 		private
 
-		def command(cmd, param="")
+		def command(cmd, param="", n=3)
+			n.times do
+				write(cmd, param)
+			end
+		end
+
+		def write(cmd, param="")
 			@write_queue << "#{cmd}#{param};"
 		end
 
 		def read(cmd, param="")
-			@write_queue << "#{cmd}#{param};"
+			write(cmd, param)
 			timeout(1) do
 				while m = @read_queue.pop
 					if m.cmd == cmd
