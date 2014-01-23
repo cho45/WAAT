@@ -175,12 +175,10 @@ class CAT
 			@read_thread = Thread.start do
 				Thread.abort_on_exception = true
 				while message = @port.gets(";")
+					p "<< #{message}"
 					begin
 						msg = Message.parse(message)
 						@read_queue.push(msg)
-						if @ai_queue[msg.cmd]
-							@ai_queue.delete(msg.cmd).push(msg)
-						end
 					rescue => e
 						p message
 						p e
@@ -188,17 +186,28 @@ class CAT
 				end
 			end
 
+			@write_queue = Queue.new
+			@write_thread = Thread.start do
+				Thread.abort_on_exception = true
+				while m = @write_queue.pop
+					p ">> #{m}"
+					@port.write(m)
+				end
+			end
+
 			@status = {}
-			@ai = false
-			@ai_queue = {}
+			@mutex = Mutex.new
+
+			@write_queue << "AI0;"
+			until @read_queue.empty?
+				@read_queue.pop
+				@write_queue << "AI0;"
+			end
 		end
 
+		class AICanceled < Exception; end
+
 		def status(&block)
-			return @status if @ai
-
-			command "AI", "0"
-			@read_queue.pop until @read_queue.empty?
-
 			m = read "IF"
 			@status[:frequency] = m.frequency
 			@status[:mode] = m.mode
@@ -221,46 +230,13 @@ class CAT
 			end
 
 			if block
-				@ai = true
 				block.call(@status)
-				begin
-					command "AI", "1"
-					while m = timeout(10) { @read_queue.pop }
-						case m
-						when Message::IF
-							@status[:frequency] = m.frequency
-							@status[:mode] = m.mode
-							block.call(@status)
-						when Message::FA
-							@status[:frequency] = m.frequency
-							block.call(@status)
-						when Message::PC
-							@status[:power] = m.power
-							block.call(@status)
-						when Message::MD
-							@status[:mode] = m.mode
-							block.call(@status)
-						when Message::VS
-							@status[:vfo] = m.vfo
-							block.call(@status)
-						when Message::SH
-							@status[:width] = m.width
-							block.call(@status)
-						when Message::NR
-							if m.params[1] === '0'
-								@status[:noise_reduction] = 0 
-								block.call(@status)
-							else
-								command "RL", "0"
-							end
-						when Message::RL
-							@status[:noise_reduction] = m.level
-							block.call(@status)
-						end
+				loop do
+					prev = @status.to_a
+					status()
+					unless prev == @status.to_a
+						block.call(@status)
 					end
-				rescue Timeout::Error => e
-					p :timeout
-					retry
 				end
 			else
 				@status
@@ -280,60 +256,37 @@ class CAT
 		end
 
 		def power=(power, try=3)
-			importune do
-				command "PC", "%03d" % power
-			end
+			command "PC", "%03d" % power
 		end
 
 		def width=(width)
-			importune do
-				command "SH", "%03d" % width
-			end
+			command "SH", "%03d" % width
 		end
 
 		def noise_reduction=(level)
 			if level.zero?
-				importune do
-					command "NR", "00"
-				end
+				command "NR", "00"
 			else
-				importune do
-					command "NR", "01"
-					command "RL", "%03d" % level
-				end
+				command "NR", "01"
+				command "RL", "%03d" % level
 			end
 		end
 
 		private
 
 		def command(cmd, param="")
-			p "#{cmd}#{param};"
-			@port.write "#{cmd}#{param};"
-			sleep 0.1
+			@write_queue << "#{cmd}#{param};"
 		end
 
 		def read(cmd, param="")
-			p "#{cmd}#{param};"
-			@port.write "#{cmd}#{param};"
-			if @ai
-				@ai_queue[cmd] = Queue.new
-				timeout(1) do
-					return @ai_queue[cmd].pop
-				end
-			else
-				timeout(1) do
-					while m = @read_queue.pop
-						if m.cmd == cmd
-							return m
-						end
+			@write_queue << "#{cmd}#{param};"
+			timeout(1) do
+				while m = @read_queue.pop
+					if m.cmd == cmd
+						return m
 					end
 				end
 			end
-		end
-
-		def importune(n=3, &block)
-			yield
-			importune(n-1, &block) if 1 < n
 		end
 	end
 end
