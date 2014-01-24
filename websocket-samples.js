@@ -69,14 +69,16 @@ myApp.controller('MyCtrl', function ($scope, $http, $timeout, $window, CATSocket
 	};
 
 	CATSocketService.onmessage = function (data) {
-		var result = data.result;
-		$scope.data            = JSON.stringify(result, null, 2);
-		$scope.frequency       = result.frequency;
-		$scope.mode            = result.mode;
-		$scope.power           = result.power;
-		$scope.vfo             = result.vfo;
-		$scope.width           = result.width;
-		$scope.noise_reduction = result.noise_reduction;
+		if (!data.id) {
+			var result = data.result;
+			$scope.data            = JSON.stringify(result, null, 2);
+			$scope.frequency       = result.frequency;
+			$scope.mode            = result.mode;
+			$scope.power           = result.power;
+			$scope.vfo             = result.vfo;
+			$scope.width           = result.width;
+			$scope.noise_reduction = result.noise_reduction;
+		}
 	};
 
 	$scope.setPower = function () {
