@@ -338,13 +338,13 @@ class CAT
 			retry if try > 0
 		end
 
-		private
-
 		def command(cmd, param="", n=3)
 			n.times do
 				write(cmd, param)
 			end
 		end
+
+		private
 
 		def write(cmd, param="")
 			@write_queue << "#{cmd}#{param};"

@@ -1,8 +1,10 @@
 
 var myApp = angular.module('myApp', []);
 
-myApp.factory('CATSocketService', function ($rootScope) {
+myApp.factory('CATSocketService', function ($rootScope, $q) {
 	var service = {};
+	var deferred = {};
+	var id = 1;
 
 	service.connect = function () {
 		if (service.socket) return;
@@ -29,6 +31,14 @@ myApp.factory('CATSocketService', function ($rootScope) {
 			var data = JSON.parse(e.data);
 			console.log('ws.onmessage', data);
 			if (service.onmessage) service.onmessage(data);
+			if (deferred[data.id]) {
+				if (data.error) {
+					deferred[data.id].reject(data.error);
+				} else {
+					deferred[data.id].resolve(data.result);
+				}
+				delete deferred[data.id];
+			}
 			$rootScope.$apply();
 		};
 	};
@@ -38,13 +48,18 @@ myApp.factory('CATSocketService', function ($rootScope) {
 	};
 
 	service.command = function (cmd, arg) {
-		service.send({ command: cmd, value : arg });
+		var call = { id: id++, method: cmd, params : [ arg ] };
+		service.send(call);
+		deferred[call.id] = $q.defer();
+		return deferred[call.id].promise;
 	};
 
 	return service;
 });
 
-myApp.controller('MyCtrl', function ($scope, $http, $timeout, CATSocketService) {
+myApp.controller('MyCtrl', function ($scope, $http, $timeout, $window, CATSocketService) {
+	$window.CATSocketService = CATSocketService;
+
 	CATSocketService.onopen = function () {
 		$scope.connection = true;
 	};
@@ -54,13 +69,14 @@ myApp.controller('MyCtrl', function ($scope, $http, $timeout, CATSocketService) 
 	};
 
 	CATSocketService.onmessage = function (data) {
-		$scope.data            = JSON.stringify(data, null, 2);
-		$scope.frequency       = data.frequency;
-		$scope.mode            = data.mode;
-		$scope.power           = data.power;
-		$scope.vfo             = data.vfo;
-		$scope.width           = data.width;
-		$scope.noise_reduction = data.noise_reduction;
+		var result = data.result;
+		$scope.data            = JSON.stringify(result, null, 2);
+		$scope.frequency       = result.frequency;
+		$scope.mode            = result.mode;
+		$scope.power           = result.power;
+		$scope.vfo             = result.vfo;
+		$scope.width           = result.width;
+		$scope.noise_reduction = result.noise_reduction;
 	};
 
 	$scope.setPower = function () {
@@ -68,7 +84,9 @@ myApp.controller('MyCtrl', function ($scope, $http, $timeout, CATSocketService) 
 	};
 
 	$scope.setWidth = function () {
-		CATSocketService.command('width', +$scope.width);
+		CATSocketService.command('width', +$scope.width).then(function (r) {
+			console.log(['callback', r]);
+		});
 	};
 
 	$scope.setMode = function () {

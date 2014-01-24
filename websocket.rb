@@ -15,7 +15,7 @@ EM::run do
 	EM::WebSocket.start(:host => "0.0.0.0", :port => 51234) do |ws|
 		ws.onopen do
 			p :onopen
-			ws.send(JSON.generate(@status)) if @status
+			ws.send(JSON.generate({ "id" => nil, "result" => @status })) if @status
 
 			sid = @channel.subscribe do |mes|
 				ws.send(mes)
@@ -29,28 +29,29 @@ EM::run do
 
 		ws.onmessage do |msg|
 			cmd = JSON.parse(msg)
-			p cmd
+			method = cmd["method"]
+			params = cmd["params"]
+			id     = cmd["id"]
+
 			begin
-				case cmd["command"]
-				when "power"
-					@cat.power = cmd["value"]
-				when "frequency"
-					@cat.frequency = cmd["value"]
-				when "mode"
-					@cat.mode = cmd["value"]
-				when "width"
-					@cat.width = cmd["value"]
-				when "noise_reduction"
-					@cat.noise_reduction = cmd["value"]
-				when "status"
-					ws.send(JSON.generate(@status)) if @status
+				ret = nil
+				case
+				when @cat.respond_to?("#{method}=")
+					method = @cat.method("#{method}=")
+					params = method.parameters.map {|i| params[i[1].to_s] } if params.is_a? Hash
+					ret = method.call(*params)
+				when @cat.respond_to?(method)
+					method = @cat.method(method)
+					params = method.parameters.map {|i| params[i[1].to_s] } if params.is_a? Hash
+					ret = method.call(*params)
 				end
-				if cmd["id"]
-					ws.send(JSON.generate({ "id" => cmd["id"] }))
-				end
+
+				ws.send(JSON.generate({ "id" => id, "result" => ret, "error" => nil }))
+			rescue NameError
+				ws.send(JSON.generate({ "id" => id, "result" => nil, "error" => "unknown method" }))
 			rescue Timeout::Error
 				puts "timeout"
-				ws.send(JSON.generate({ "id" => cmd["id"], "error" => "timeout" }))
+				ws.send(JSON.generate({ "id" => id, "result" => nil, "error" => "timeout" }))
 			end
 		end
 
@@ -64,7 +65,7 @@ EM::run do
 			@cat.status do |status|
 				@status = status
 				p @status
-				@channel.push JSON.generate(@status)
+				@channel.push JSON.generate({ "id" => nil, "result" => @status })
 			end
 		rescue Timeout::Error
 			warn "timeout"
