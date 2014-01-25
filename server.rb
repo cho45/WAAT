@@ -1,12 +1,20 @@
 #!/usr/bin/env ruby
 
+require 'rubygems'
+require 'bundler'
+Bundler.require
+
+require 'timeout'
 require "em-websocket"
 require "json"
-require "./cat.rb"
+require "./lib/cat.rb"
+require "pathname"
 
-port = ARGV.shift || '/dev/ttyAMA0'
+dir = Pathname(__FILE__).parent
+config = eval( (dir + "config.rb").read )
 
-@cat = CAT::FT450D.new({ :port => port})
+@logger = Logger.new(config[:log] || $stdout)
+@cat = CAT.instance(config)
 
 EM::run do
 	@channel = EM::Channel.new
@@ -14,7 +22,7 @@ EM::run do
 
 	EM::WebSocket.start(:host => "0.0.0.0", :port => 51234) do |ws|
 		ws.onopen do
-			p :onopen
+			@logger.info "WebSocket onopen #{ws}"
 			ws.send(JSON.generate({ "id" => nil, "result" => @status })) if @status
 
 			sid = @channel.subscribe do |mes|
@@ -22,7 +30,7 @@ EM::run do
 			end
 
 			ws.onclose do
-				p :onclose
+				@logger.info "WebSocket onclose #{ws}"
 				@channel.unsubscribe(sid)
 			end
 		end
@@ -56,19 +64,19 @@ EM::run do
 		end
 
 		ws.onerror do |error|
-			p error
+			@logger.fatal error
 		end
 	end
 
 	EM::defer do
 		begin
 			@cat.status do |status|
+				@logger.info status.inspect
 				@status = status
-				p @status
 				@channel.push JSON.generate({ "id" => nil, "result" => @status })
 			end
 		rescue Timeout::Error
-			warn "timeout"
+			@logger.fatal "timeout"
 			sleep 1
 			retry
 		end

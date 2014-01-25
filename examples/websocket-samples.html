@@ -68,6 +68,15 @@
 			</form>
 
 			<pre ng-bind="data"></pre>
+
+			<pre>
+Power On:
+	CATSocketService.command("command", "PS1");
+Power Off:
+	CATSocketService.command("command", "PS0");
+AF Gain:
+	CATSocketService.command("command", "AG000")
+</pre>
 		</div>
 	</body>
 </html>
