@@ -3,5 +3,5 @@ exec 2>&1
 
 cd /home/pi/app/WAAT
 
-exec setuidgid pi bundle exec ruby server.rb
+exec bundle exec ruby server.rb
 
