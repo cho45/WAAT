@@ -41,8 +41,10 @@ EM::run do
 			params = cmd["params"]
 			id     = cmd["id"]
 
+			@logger.info "#{ws} >>> #{cmd.inspect}"
+
+			ret = nil, error = nil
 			begin
-				ret = nil
 				case
 				when @cat.respond_to?("#{method}=")
 					method = @cat.method("#{method}=")
@@ -53,14 +55,16 @@ EM::run do
 					params = method.parameters.map {|i| params[i[1].to_s] } if params.is_a? Hash
 					ret = method.call(*params)
 				end
-
-				ws.send(JSON.generate({ "id" => id, "result" => ret, "error" => nil }))
-			rescue NameError
-				ws.send(JSON.generate({ "id" => id, "result" => nil, "error" => "unknown method" }))
-			rescue Timeout::Error
-				puts "timeout"
-				ws.send(JSON.generate({ "id" => id, "result" => nil, "error" => "timeout" }))
+			rescue NameError => e
+				error = e
+			rescue Timeout::Error => e
+				error = e
 			end
+
+			res = { "id" => id, "result" => ret, "error" => error }
+			@logger.info "#{ws} <<< #{res.inspect}"
+
+			ws.send(JSON.generate(res))
 		end
 
 		ws.onerror do |error|
@@ -70,7 +74,7 @@ EM::run do
 
 	EM::defer do
 		begin
-			@cat.status do |status|
+			@cat.read_status do |status|
 				@logger.info status.inspect
 				@status = status
 				@channel.push JSON.generate({ "id" => nil, "result" => @status })

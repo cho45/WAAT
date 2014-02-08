@@ -153,7 +153,6 @@ class FT450D < CAT
 		opts[:stopbit]     = STOPBIT
 		opts[:paritycheck] = PARITYCHECK
 		super(opts)
-		@status = {}
 
 		@write_queue << "AI0;"
 		until @read_queue.empty?
@@ -162,7 +161,7 @@ class FT450D < CAT
 		end
 	end
 
-	def status(&block)
+	def read_status(&block)
 		m = read "IF"
 		@status[:frequency] = m.frequency
 		@status[:mode] = m.mode

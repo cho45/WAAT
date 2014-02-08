@@ -19,7 +19,10 @@ class CAT
 		klass.new(opts)
 	end
 
+	attr_reader :status
+
 	def initialize(opts)
+		@status = {}
 		@port = SerialPort.new(
 			opts[:port],
 			opts[:baudrate],
@@ -53,7 +56,7 @@ class CAT
 		@write_thread = Thread.start do
 			Thread.abort_on_exception = true
 			while m = @write_queue.pop
-				@logger.debug ">> #{m}"
+				@logger.info ">> #{m}"
 				@port.write(m)
 			end
 		end
