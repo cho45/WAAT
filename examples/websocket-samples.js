@@ -122,5 +122,16 @@ myApp.controller('MyCtrl', function ($scope, $http, $timeout, $window, CATSocket
 		}, 1000);
 	};
 
+	$scope.powerOn = function () {
+		CATSocketService.command("command", "PS1");
+		setTimeout(function () {
+			CATSocketService.command("command", "PS1");
+		}, 1100);
+	};
+
+	$scope.powerOff = function () {
+		CATSocketService.command("command", "PS0");
+	};
+
 	CATSocketService.connect();
 });

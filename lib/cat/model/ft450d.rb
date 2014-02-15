@@ -145,6 +145,13 @@ class FT450D < CAT
 				@level = self.params.to_i
 			end
 		end
+
+		class SQ < Message::IF
+			attr_reader :level
+			def parse_params
+				@level = self.params.to_i
+			end
+		end
 	end
 
 	def initialize(opts)
@@ -218,7 +225,7 @@ class FT450D < CAT
 					block.call(@status)
 				when Message::NR
 					if m.params[1] === '0'
-						@status[:noise_reduction] = 0 
+						@status[:noise_reduction] = 0
 						block.call(@status)
 					else
 						command "RL", "0"

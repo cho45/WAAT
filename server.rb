@@ -46,6 +46,11 @@ EM::run do
 			ret = nil, error = nil
 			begin
 				case
+				when method == "broadcast"
+					# method `broadcast` is for extension of another information
+					params = [ :result ].map {|i| params[i.to_s] } if params.is_a? Hash
+					@channel.push JSON.generate({ "id" => nil, "result" => params[0] })
+					ret = true
 				when @cat.respond_to?("#{method}=")
 					method = @cat.method("#{method}=")
 					params = method.parameters.map {|i| params[i[1].to_s] } if params.is_a? Hash
